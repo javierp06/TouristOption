@@ -1,0 +1,221 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../core/widgets/notification_badge.dart';
+import '../../core/widgets/custom_drawer.dart';
+import '../../core/widgets/dashboard_card.dart';
+import '../../core/responsive/responsive.dart';
+import '../../core/theme/theme_provider.dart';
+
+class EmployeeDashboard extends StatelessWidget {
+  const EmployeeDashboard({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Ajustar para mejor visualización web
+    final isWeb = Theme.of(context).platform == TargetPlatform.macOS ||
+                 Theme.of(context).platform == TargetPlatform.windows ||
+                 Theme.of(context).platform == TargetPlatform.linux;
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Panel de Empleado'),
+        actions: [
+          const NotificationBadge(count: 2),
+          // Botón de tema
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, _) {
+              return IconButton(
+                icon: Icon(
+                  themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                ),
+                onPressed: () {
+                  themeProvider.toggleTheme();
+                },
+                tooltip: themeProvider.isDarkMode 
+                    ? 'Cambiar a modo claro' 
+                    : 'Cambiar a modo oscuro',
+              );
+            },
+          ),
+        ],
+      ),
+      drawer: const CustomDrawer(isAdmin: false),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isWeb ? 1200 : double.infinity,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Sección de bienvenida personalizada
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Colors.blue,
+                          child: Icon(Icons.person, size: 36, color: Colors.white),
+                        ),
+                        const SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '¡Bienvenido de nuevo, Juan!',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'Último registro: ${DateTime.now().toString().substring(0, 16)}',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                Text(
+                  'Opciones rápidas',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Grid de cards para accesos rápidos
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: Responsive.isDesktop(context) 
+                    ? 4 
+                    : (Responsive.isTablet(context) ? 3 : 2),
+                  crossAxisSpacing: 16.0,
+                  mainAxisSpacing: 16.0,
+                  childAspectRatio: isWeb ? 1.3 : 1.0,
+                  children: [
+                    DashboardCard(
+                      icon: Icons.fingerprint,
+                      title: 'Registrar Asistencia',
+                      color: Colors.green,
+                      onTap: () => Navigator.pushNamed(context, '/attendance'),
+                    ),
+                    DashboardCard(
+                      icon: Icons.calendar_today,
+                      title: 'Mi Calendario',
+                      color: Colors.blueAccent,
+                      onTap: () => Navigator.pushNamed(context, '/attendance'),
+                    ),
+                    DashboardCard(
+                      icon: Icons.receipt_long,
+                      title: 'Mis Nóminas',
+                      color: Colors.purpleAccent,
+                      onTap: () => Navigator.pushNamed(context, '/payroll'),
+                    ),
+                    DashboardCard(
+                      icon: Icons.bar_chart,
+                      title: 'Reportes',
+                      color: Colors.orangeAccent,
+                      onTap: () => Navigator.pushNamed(context, '/reports'),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Resumen del mes actual
+                Text(
+                  'Resumen del mes',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildStatItem(
+                              context, 
+                              '21/22', 
+                              'Días trabajados', 
+                              Colors.blue
+                            ),
+                            _buildStatItem(
+                              context, 
+                              '156.5', 
+                              'Horas trabajadas', 
+                              Colors.green
+                            ),
+                            _buildStatItem(
+                              context, 
+                              '2', 
+                              'Llegadas tarde', 
+                              Colors.orange
+                            ),
+                            _buildStatItem(
+                              context, 
+                              '1', 
+                              'Ausencias', 
+                              Colors.red
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildStatItem(BuildContext context, String value, String label, Color color) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+}
