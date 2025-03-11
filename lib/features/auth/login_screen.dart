@@ -1,6 +1,9 @@
 // lib/features/auth/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/theme_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -13,15 +16,61 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isAdmin = false; // This would come from your authentication logic
+  bool _isLoading = false;
 
   Future<void> _login() async {
-    // Here you would implement your authentication logic
-    // For now, we'll use a simple role toggle for demo purposes
-    if (_usernameController.text.contains('admin')) {
-      Navigator.pushReplacementNamed(context, '/admin');
-    } else {
-      Navigator.pushReplacementNamed(context, '/employee');
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final url = Uri.parse('https://timecontrol-backend.onrender.com/usuarios/login');
+      
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'nombre_usuario': _usernameController.text,
+          'contraseña': _passwordController.text,
+        }),
+      );
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (response.statusCode == 200) {
+        // Parse the response
+        final responseData = json.decode(response.body);
+        print('Login successful: $responseData');
+        
+        // Correctly access the role from the usuario object
+        final isAdmin = responseData['usuario']['rol'] == 'admin';
+        
+        // Store token for future authenticated requests
+        final token = responseData['token'];
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', token);
+        
+        if (isAdmin) {
+          Navigator.pushReplacementNamed(context, '/admin');
+        } else {
+          Navigator.pushReplacementNamed(context, '/employee');
+        }
+      } else {
+        // Handle login failure
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Credenciales inválidas')),
+        );
+      }
+    } catch (error) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error de conexión: $error')),
+      );
     }
   }
 
@@ -32,7 +81,6 @@ class _LoginScreenState extends State<LoginScreen> {
         title: const Text('Tourist Options'),
         centerTitle: true,
         actions: [
-          // Botón para cambiar entre tema claro y oscuro
           Consumer<ThemeProvider>(
             builder: (context, themeProvider, _) {
               return IconButton(
@@ -89,10 +137,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _login,
-                      child: const Padding(
-                        padding: EdgeInsets.all(12.0),
-                        child: Text('Iniciar Sesión'),
+                      onPressed: _isLoading ? null : _login,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text('Iniciar Sesión'),
                       ),
                     ),
                   ),
