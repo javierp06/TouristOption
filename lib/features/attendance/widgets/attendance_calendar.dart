@@ -11,7 +11,6 @@ class AttendanceCalendar extends StatefulWidget {
 class _AttendanceCalendarState extends State<AttendanceCalendar> {
   late DateTime _currentMonth;
   late DateTime _previousMonth;
-  late DateTime _previousTwoMonth;
   DateTime? _selectedDay;
   
   // Ejemplo de días con asistencia
@@ -20,7 +19,6 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
     DateTime.now().subtract(const Duration(days: 5)),
     DateTime.now().subtract(const Duration(days: 10)),
     DateTime.now().subtract(const Duration(days: 35)), // Mes anterior
-    DateTime.now().subtract(const Duration(days: 65)), // Dos meses atrás
   };
 
   @override
@@ -33,14 +31,12 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
     final now = DateTime.now();
     _currentMonth = DateTime(now.year, now.month, 1);
     _previousMonth = DateTime(now.year, now.month - 1, 1);
-    _previousTwoMonth = DateTime(now.year, now.month - 2, 1);
   }
 
   void _navigateToPreviousMonth() {
     setState(() {
       _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1, 1);
       _previousMonth = DateTime(_previousMonth.year, _previousMonth.month - 1, 1);
-      _previousTwoMonth = DateTime(_previousTwoMonth.year, _previousTwoMonth.month - 1, 1);
     });
   }
 
@@ -48,97 +44,67 @@ class _AttendanceCalendarState extends State<AttendanceCalendar> {
     setState(() {
       _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 1);
       _previousMonth = DateTime(_previousMonth.year, _previousMonth.month + 1, 1);
-      _previousTwoMonth = DateTime(_previousTwoMonth.year, _previousTwoMonth.month + 1, 1);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Determinar si mostrar en modo columna o fila basado en el ancho disponible
-        final isWideLayout = constraints.maxWidth > 900;
-        
-        return Card(
-          margin: const EdgeInsets.all(8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Registro de asistencia',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back_ios),
-                          onPressed: _navigateToPreviousMonth,
-                          tooltip: 'Mes anterior',
-                          iconSize: 18,
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.arrow_forward_ios),
-                          onPressed: _navigateToNextMonth,
-                          tooltip: 'Mes siguiente',
-                          iconSize: 18,
-                        ),
-                      ],
-                    ),
-                  ],
+    return Card(
+      margin: const EdgeInsets.all(8.0),
+      // Wrap content tightly with no extra space
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        mainAxisSize: MainAxisSize.min, // Hace que la columna ocupe solo el espacio necesario
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Registro de asistencia',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold
+                  ),
                 ),
-              ),
-              if (isWideLayout)
-                // Layout horizontal para pantallas anchas
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      flex: 3,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _buildMonthCalendar(_previousTwoMonth, constraints.maxWidth / (isWideLayout ? 4 : 1.2)),
-                            _buildMonthCalendar(_previousMonth, constraints.maxWidth / (isWideLayout ? 4 : 1.2)),
-                            _buildMonthCalendar(_currentMonth, constraints.maxWidth / (isWideLayout ? 4 : 1.2)),
-                          ],
-                        ),
-                      ),
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      onPressed: _navigateToPreviousMonth,
+                      tooltip: 'Mes anterior',
+                      iconSize: 18,
+                      padding: EdgeInsets.all(4),
+                      constraints: BoxConstraints(),
                     ),
-                    Expanded(
-                      flex: 1,
-                      child: _buildAttendanceSummary(),
+                    IconButton(
+                      icon: const Icon(Icons.arrow_forward_ios),
+                      onPressed: _navigateToNextMonth,
+                      tooltip: 'Mes siguiente',
+                      iconSize: 18,
+                      padding: EdgeInsets.all(4),
+                      constraints: BoxConstraints(),
                     ),
-                  ],
-                )
-              else
-                // Layout vertical para pantallas estrechas
-                Column(
-                  children: [
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          _buildMonthCalendar(_previousTwoMonth, constraints.maxWidth / 1.2),
-                          _buildMonthCalendar(_previousMonth, constraints.maxWidth / 1.2),
-                          _buildMonthCalendar(_currentMonth, constraints.maxWidth / 1.2),
-                        ],
-                      ),
-                    ),
-                    _buildAttendanceSummary(),
                   ],
                 ),
-            ],
+              ],
+            ),
           ),
-        );
-      }
+          // Only display 2 months now with increased width
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildMonthCalendar(_previousMonth, 350), // Aumentado de 300 a 350
+                _buildMonthCalendar(_currentMonth, 350), // Aumentado de 300 a 350
+              ],
+            ),
+          ),
+          // Eliminado el espacio vacío inferior
+        ],
+      ),
     );
   }
   

@@ -47,141 +47,151 @@ class EmployeeDashboard extends StatelessWidget {
             constraints: BoxConstraints(
               maxWidth: isWeb ? 1200 : double.infinity,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Sección de bienvenida personalizada
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      children: [
-                        const CircleAvatar(
-                          radius: 30,
-                          backgroundColor: Colors.blue,
-                          child: Icon(Icons.person, size: 36, color: Colors.white),
-                        ),
-                        const SizedBox(width: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '¡Bienvenido de nuevo, Juan!',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+            // Wrap the entire column in a SingleChildScrollView
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Sección de bienvenida personalizada
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        children: [
+                          const CircleAvatar(
+                            radius: 30,
+                            backgroundColor: Colors.blue,
+                            child: Icon(Icons.person, size: 36, color: Colors.white),
+                          ),
+                          const SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '¡Bienvenido de nuevo, Juan!',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            Text(
-                              'Último registro: ${DateTime.now().toString().substring(0, 16)}',
-                              style: TextStyle(
-                                color: Colors.grey[600],
+                              Text(
+                                'Último registro: ${DateTime.now().toString().substring(0, 16)}',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                
-                Text(
-                  'Opciones rápidas',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                // Grid de cards para accesos rápidos
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: Responsive.isDesktop(context) 
-                    ? 4 
-                    : (Responsive.isTablet(context) ? 3 : 2),
-                  crossAxisSpacing: 16.0,
-                  mainAxisSpacing: 16.0,
-                  childAspectRatio: isWeb ? 1.3 : 1.0,
-                  children: [
-                    DashboardCard(
-                      icon: Icons.fingerprint,
-                      title: 'Registrar Asistencia',
-                      color: Colors.green,
-                      onTap: () => Navigator.pushNamed(context, '/attendance'),
-                    ),
-                    DashboardCard(
-                      icon: Icons.calendar_today,
-                      title: 'Mi Calendario',
-                      color: Colors.blueAccent,
-                      onTap: () => Navigator.pushNamed(context, '/attendance'),
-                    ),
-                    DashboardCard(
-                      icon: Icons.receipt_long,
-                      title: 'Mis Nóminas',
-                      color: Colors.purpleAccent,
-                      onTap: () => Navigator.pushNamed(context, '/payroll'),
-                    ),
-                    DashboardCard(
-                      icon: Icons.bar_chart,
-                      title: 'Reportes',
-                      color: Colors.orangeAccent,
-                      onTap: () => Navigator.pushNamed(context, '/reports'),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Resumen del mes actual
-                Text(
-                  'Resumen del mes',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _buildStatItem(
-                              context, 
-                              '21/22', 
-                              'Días trabajados', 
-                              Colors.blue
-                            ),
-                            _buildStatItem(
-                              context, 
-                              '156.5', 
-                              'Horas trabajadas', 
-                              Colors.green
-                            ),
-                            _buildStatItem(
-                              context, 
-                              '2', 
-                              'Llegadas tarde', 
-                              Colors.orange
-                            ),
-                            _buildStatItem(
-                              context, 
-                              '1', 
-                              'Ausencias', 
-                              Colors.red
-                            ),
-                          ],
-                        ),
-                      ],
+                  const SizedBox(height: 24),
+                  
+                  Text(
+                    'Opciones rápidas',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  
+                  // Grid de cards para accesos rápidos
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: Responsive.isDesktop(context) 
+                      ? 4 
+                      : (Responsive.isTablet(context) ? 3 : 2),
+                    crossAxisSpacing: 16.0,
+                    mainAxisSpacing: 16.0,
+                    childAspectRatio: isWeb ? 1.3 : 1.0,
+                    children: [
+                      DashboardCard(
+                        icon: Icons.fingerprint,
+                        title: 'Registrar Asistencia',
+                        color: Colors.green,
+                        onTap: () => Navigator.pushNamed(context, '/attendance'),
+                      ),
+                      DashboardCard(
+                        icon: Icons.calendar_today,
+                        title: 'Mi Calendario',
+                        color: Colors.blueAccent,
+                        onTap: () => Navigator.pushNamed(context, '/attendance'),
+                      ),
+                      DashboardCard(
+                        icon: Icons.receipt_long,
+                        title: 'Mis Nóminas',
+                        color: Colors.purpleAccent,
+                        onTap: () => Navigator.pushNamed(context, '/payroll'),
+                      ),
+                      DashboardCard(
+                        icon: Icons.bar_chart,
+                        title: 'Reportes',
+                        color: Colors.orangeAccent,
+                        onTap: () => Navigator.pushNamed(context, '/reports'),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Resumen del mes actual
+                  Text(
+                    'Resumen del mes',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          // Replace the Row with a SingleChildScrollView + Row combination
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _buildStatItem(
+                                  context, 
+                                  '21/22', 
+                                  'Días trabajados', 
+                                  Colors.blue
+                                ),
+                                const SizedBox(width: 12), // Add spacing between items
+                                _buildStatItem(
+                                  context, 
+                                  '156.5', 
+                                  'Horas trabajadas', 
+                                  Colors.green
+                                ),
+                                const SizedBox(width: 12),
+                                _buildStatItem(
+                                  context, 
+                                  '2', 
+                                  'Llegadas tarde', 
+                                  Colors.orange
+                                ),
+                                const SizedBox(width: 12),
+                                _buildStatItem(
+                                  context, 
+                                  '1', 
+                                  'Ausencias', 
+                                  Colors.red
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -189,11 +199,16 @@ class EmployeeDashboard extends StatelessWidget {
     );
   }
   
+  // Update the _buildStatItem method to be more responsive
   Widget _buildStatItem(BuildContext context, String value, String label, Color color) {
+    // Get screen width to make elements responsive
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+    
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
           decoration: BoxDecoration(
             color: color.withOpacity(0.2),
             borderRadius: BorderRadius.circular(8),
@@ -201,7 +216,7 @@ class EmployeeDashboard extends StatelessWidget {
           child: Text(
             value,
             style: TextStyle(
-              fontSize: 18,
+              fontSize: isSmallScreen ? 16 : 18,
               fontWeight: FontWeight.bold,
               color: color,
             ),
@@ -210,8 +225,9 @@ class EmployeeDashboard extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: isSmallScreen ? 10 : 12,
             fontWeight: FontWeight.w500,
           ),
         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'monthly_attendance_summary.dart';
 
 class AttendanceReport extends StatelessWidget {
   const AttendanceReport({Key? key}) : super(key: key);
@@ -6,7 +7,13 @@ class AttendanceReport extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Add the monthly summary at the top
+        const MonthlyAttendanceSummary(),
+        
+        const SizedBox(height: 24),
+        
         // Gráfico de barras para asistencia (simulado)
         Container(
           height: 250,
