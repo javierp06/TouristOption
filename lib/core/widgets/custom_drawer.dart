@@ -73,6 +73,8 @@ class CustomDrawer extends StatelessWidget {
                 Navigator.pushReplacementNamed(context, '/employee');
               },
             ),
+            
+            
           ],
           ListTile(
             leading: const Icon(Icons.access_time),
@@ -88,6 +90,13 @@ class CustomDrawer extends StatelessWidget {
               Navigator.pushNamed(context, '/reports');
             },
           ),
+          ListTile(
+              leading: const Icon(Icons.request_page),
+              title: const Text('Solicitudes'),
+              onTap: () {
+                Navigator.pushNamed(context, '/requests');
+              },
+            ),
           const Divider(),
           Consumer<ThemeProvider>(
             builder: (context, themeProvider, _) {
@@ -105,6 +114,13 @@ class CustomDrawer extends StatelessWidget {
             },
           ),
           const Divider(),
+          ListTile(
+              leading: const Icon(Icons.password),
+              title: const Text('Cambio de Contraseña'),
+              onTap: () {
+                Navigator.pushNamed(context, '/change_password');
+              },
+            ),
           ListTile(
             leading: const Icon(Icons.exit_to_app),
             title: const Text('Cerrar Sesión'),

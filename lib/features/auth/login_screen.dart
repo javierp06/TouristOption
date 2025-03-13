@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/theme/theme_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -18,10 +18,25 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
+  bool _validateInputs() {
+    if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Usuario y contraseña son requeridos')),
+      );
+      return false;
+    }
+    return true;
+  }
+
   Future<void> _login() async {
     setState(() {
       _isLoading = true;
     });
+
+    if (!_validateInputs()) {
+      setState(() { _isLoading = false; });
+      return;
+    }
 
     try {
       final url = Uri.parse('https://timecontrol-backend.onrender.com/usuarios/login');
@@ -47,10 +62,15 @@ class _LoginScreenState extends State<LoginScreen> {
         // Correctly access the role from the usuario object
         final isAdmin = responseData['usuario']['rol'] == 'admin';
         
-        // Store token for future authenticated requests
+        // Store token and user info for future authenticated requests
         final token = responseData['token'];
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', token);
+        final userId = responseData['usuario']['id_usuario'].toString();
+        final userRole = responseData['usuario']['rol'];
+
+        final storage = FlutterSecureStorage();
+        await storage.write(key: 'token', value: token);
+        await storage.write(key: 'userId', value: userId);
+        await storage.write(key: 'userRole', value: userRole);
         
         if (isAdmin) {
           Navigator.pushReplacementNamed(context, '/admin');
