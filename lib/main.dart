@@ -12,17 +12,19 @@ import 'features/reports/reports_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'features/auth/change_password_screen.dart';
+import 'package:file_picker/file_picker.dart';  // Add this import
 
-void main() {
-  // Inicializar datos de localización antes de ejecutar la app
-  initializeDateFormatting().then((_) {
-    runApp(
-      ChangeNotifierProvider(
-        create: (_) => ThemeProvider(),
-        child: const TouristOptionsApp(),
-      ),
-    );
-  });
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); 
+  
+  await initializeDateFormatting('es');
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: const TouristOptionsApp(),
+    ),
+  );
 }
 
 class TouristOptionsApp extends StatelessWidget {

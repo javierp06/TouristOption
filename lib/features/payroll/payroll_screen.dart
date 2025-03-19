@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'widgets/payroll_filter.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../../core/widgets/custom_drawer.dart';
+import '../../core/responsive/responsive.dart';
+import '../../core/models/payroll.dart';
 import 'widgets/payroll_list.dart';
-import 'widgets/payroll_summary.dart';
+import 'admin/create_payroll_screen.dart';
 
 class PayrollScreen extends StatefulWidget {
   const PayrollScreen({Key? key}) : super(key: key);
@@ -12,292 +16,238 @@ class PayrollScreen extends StatefulWidget {
 }
 
 class _PayrollScreenState extends State<PayrollScreen> {
-  String selectedPeriod = 'Mayo 2025';
-  bool isAdmin = false; // Cambiar según la autenticación real
+  bool isAdmin = false;
+  bool isLoading = true;
+  String? errorMessage;
+  String? userId;
+  List<Payroll> payrolls = [];
+  List<Payroll> filteredPayrolls = [];
+  int currentPage = 1;
+  int itemsPerPage = 10;
+  String searchQuery = '';
   
-  final List<Map<String, dynamic>> payrollData = [
-    {
-      'id': '001',
-      'employeeId': '1',
-      'employeeName': 'Juan Pérez',
-      'period': 'Mayo 2025',
-      'grossSalary': 15000.0,
-      'deductions': 3250.0,
-      'netSalary': 11750.0,
-      'status': 'Pagado',
-      'date': DateTime(2025, 5, 30),
-      'details': {
-        'baseSalary': 12000.0,
-        'overtime': 1000.0,
-        'bonus': 2000.0,
-        'ihss': 450.0,
-        'isr': 2000.0,
-        'advances': 800.0,
-      }
-    },
-    {
-      'id': '002',
-      'employeeId': '2',
-      'employeeName': 'María García',
-      'period': 'Mayo 2025',
-      'grossSalary': 18000.0,
-      'deductions': 4100.0,
-      'netSalary': 13900.0,
-      'status': 'Pagado',
-      'date': DateTime(2025, 5, 30),
-      'details': {
-        'baseSalary': 15000.0,
-        'overtime': 1500.0,
-        'bonus': 1500.0,
-        'ihss': 600.0,
-        'isr': 2500.0,
-        'advances': 1000.0,
-      }
-    },
-    {
-      'id': '003',
-      'employeeId': '3',
-      'employeeName': 'Carlos Rodríguez',
-      'period': 'Mayo 2025',
-      'grossSalary': 12000.0,
-      'deductions': 2400.0,
-      'netSalary': 9600.0,
-      'status': 'Procesando',
-      'date': DateTime(2025, 5, 30),
-      'details': {
-        'baseSalary': 10000.0,
-        'overtime': 500.0,
-        'bonus': 1500.0,
-        'ihss': 400.0,
-        'isr': 1500.0,
-        'advances': 500.0,
-      }
-    },
-  ];
-
-  List<Map<String, dynamic>> filteredPayroll = [];
-  Map<String, dynamic>? selectedPayroll;
-
   @override
   void initState() {
     super.initState();
-    filteredPayroll = [...payrollData];
-    if (filteredPayroll.isNotEmpty) {
-      selectedPayroll = filteredPayroll[0];
+    _fetchUserInfo().then((_) {
+      _fetchPayrolls();
+    });
+  }
+  
+  Future<void> _fetchUserInfo() async {
+    try {
+      final storage = const FlutterSecureStorage();
+      final token = await storage.read(key: 'token');
+      final userRole = await storage.read(key: 'userRole');
+      
+      if (userRole != null) {
+        setState(() {
+          isAdmin = userRole == 'admin';
+        });
+      }
+      
+      final response = await http.get(
+        Uri.parse('https://timecontrol-backend.onrender.com/empleados/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final userData = json.decode(response.body);
+        setState(() {
+          userId = userData['id'].toString();
+          if (userData['rol'] != null) {
+            isAdmin = userData['rol'] == 'admin';
+          }
+        });
+      }
+    } catch (e) {
+      print('Error fetching user info: $e');
     }
   }
-
-  void _filterPayroll(String period) {
+  
+  Future<void> _fetchPayrolls() async {
     setState(() {
-      selectedPeriod = period;
-      filteredPayroll = payrollData.where((p) => p['period'] == period).toList();
-      if (filteredPayroll.isNotEmpty) {
-        selectedPayroll = filteredPayroll[0];
+      isLoading = true;
+      errorMessage = null;
+    });
+    
+    try {
+      final storage = const FlutterSecureStorage();
+      final token = await storage.read(key: 'token');
+      
+      // URL para administrador o empleado
+      final url = isAdmin 
+          ? Uri.parse('https://timecontrol-backend.onrender.com/nominas')
+          : Uri.parse('https://timecontrol-backend.onrender.com/nominas?id_empleado=$userId');
+      
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> responseData = json.decode(response.body);
+        final loadedPayrolls = responseData
+            .map((data) => Payroll.fromJson(data))
+            .toList();
+            
+        // Ordenar por fecha, más reciente primero
+        loadedPayrolls.sort((a, b) => b.fechaGeneracion.compareTo(a.fechaGeneracion));
+        
+        setState(() {
+          payrolls = loadedPayrolls;
+          filteredPayrolls = loadedPayrolls;
+          isLoading = false;
+        });
       } else {
-        selectedPayroll = null;
+        setState(() {
+          errorMessage = 'Error al cargar nóminas: ${response.statusCode}';
+          isLoading = false;
+        });
       }
-    });
+    } catch (error) {
+      setState(() {
+        errorMessage = 'Error de conexión: $error';
+        isLoading = false;
+      });
+    }
   }
-
-  void _selectPayroll(Map<String, dynamic> payroll) {
+  
+  void _filterPayrolls(String query) {
     setState(() {
-      selectedPayroll = payroll;
+      searchQuery = query;
+      if (query.isEmpty) {
+        filteredPayrolls = List.from(payrolls);
+      } else {
+        filteredPayrolls = payrolls
+            .where((payroll) =>
+                payroll.empleadoNombre.toLowerCase().contains(query.toLowerCase()) ||
+                payroll.periodo.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+      }
+      currentPage = 1; // Resetear a primera página al filtrar
     });
   }
-
-  void _showPayrollDetails(BuildContext context, Map<String, dynamic> payroll) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  
+  List<Payroll> get _paginatedPayrolls {
+    final startIndex = (currentPage - 1) * itemsPerPage;
+    final endIndex = startIndex + itemsPerPage > filteredPayrolls.length 
+        ? filteredPayrolls.length 
+        : startIndex + itemsPerPage;
+    
+    if (startIndex >= filteredPayrolls.length) {
+      return [];
+    }
+    
+    return filteredPayrolls.sublist(startIndex, endIndex);
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    final isWideScreen = Responsive.isDesktop(context) || Responsive.isTablet(context);
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Nóminas'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchPayrolls,
+            tooltip: 'Actualizar',
+          ),
+        ],
       ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        expand: false,
-        builder: (context, scrollController) {
-          final details = payroll['details'] as Map<String, dynamic>;
-          return SingleChildScrollView(
-            controller: scrollController,
-            child: Padding(
+      drawer: CustomDrawer(isAdmin: isAdmin),
+      body: Column(
+        children: [
+          // Búsqueda (solo para administradores)
+          if (isAdmin)
+            Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: TextField(
+                decoration: const InputDecoration(
+                  labelText: 'Buscar por nombre o período',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: _filterPayrolls,
+              ),
+            ),
+          
+          // Contenido principal
+          Expanded(
+            child: isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : errorMessage != null
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(errorMessage!, style: const TextStyle(color: Colors.red)),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _fetchPayrolls,
+                          child: const Text('Reintentar'),
+                        ),
+                      ],
+                    ),
+                  )
+                : filteredPayrolls.isEmpty
+                  ? const Center(child: Text('No hay nóminas disponibles'))
+                  : PayrollList(
+                      payrolls: _paginatedPayrolls,
+                      isAdmin: isAdmin,
+                    ),
+          ),
+          
+          // Paginación
+          if (filteredPayrolls.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Recibo de Pago', 
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.print),
-                        onPressed: () {
-                          // Implementar función para imprimir o descargar PDF
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Recibo descargado'))
-                          );
-                        },
-                      )
-                    ],
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: currentPage > 1
+                        ? () => setState(() => currentPage--)
+                        : null,
                   ),
-                  const Divider(),
-                  ListTile(
-                    title: const Text('Empleado'),
-                    subtitle: Text(payroll['employeeName']),
-                    leading: const Icon(Icons.person),
-                  ),
-                  ListTile(
-                    title: const Text('Fecha de Pago'),
-                    subtitle: Text(DateFormat('dd/MM/yyyy').format(payroll['date'])),
-                    leading: const Icon(Icons.calendar_today),
-                  ),
-                  ListTile(
-                    title: const Text('Período'),
-                    subtitle: Text(payroll['period']),
-                    leading: const Icon(Icons.date_range),
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Ingresos', 
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold
-                    )
-                  ),
-                  _buildPayrollItem('Salario Base', details['baseSalary']),
-                  _buildPayrollItem('Horas Extra', details['overtime']),
-                  _buildPayrollItem('Bonificaciones', details['bonus']),
-                  const Divider(),
-                  Text('Deducciones', 
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold
-                    )
-                  ),
-                  _buildPayrollItem('IHSS', details['ihss'], isDeduction: true),
-                  _buildPayrollItem('ISR', details['isr'], isDeduction: true),
-                  _buildPayrollItem('Adelantos', details['advances'], isDeduction: true),
-                  const Divider(thickness: 1.5),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Total Bruto:', 
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      Text(
-                        'L. ${NumberFormat("#,##0.00").format(payroll['grossSalary'])}',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Total Deducciones:', 
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      Text(
-                        'L. ${NumberFormat("#,##0.00").format(payroll['deductions'])}',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Total Neto:', 
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold
-                        ),
-                      ),
-                      Text(
-                        'L. ${NumberFormat("#,##0.00").format(payroll['netSalary'])}',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ),
-                    ],
+                  Text('Página $currentPage de ${(filteredPayrolls.length / itemsPerPage).ceil()}'),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_forward),
+                    onPressed: currentPage < (filteredPayrolls.length / itemsPerPage).ceil()
+                        ? () => setState(() => currentPage++)
+                        : null,
                   ),
                 ],
               ),
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildPayrollItem(String title, double amount, {bool isDeduction = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title),
-          Text(
-            'L. ${NumberFormat("#,##0.00").format(amount)}',
-            style: TextStyle(
-              color: isDeduction ? Colors.red : Colors.green[700],
-            ),
-          ),
         ],
       ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nómina'),
-        actions: [
-          if (isAdmin)
-            IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: () {
-                // Implementar generación de nueva nómina
+      floatingActionButton: isAdmin
+          ? FloatingActionButton.extended(
+              onPressed: () async {
+                final result = await showDialog(
+                  context: context,
+                  builder: (context) => const CreatePayrollDialog(),
+                );
+                
+                // Si el resultado es true (nómina creada con éxito), actualizamos la lista
+                if (result == true) {
+                  _fetchPayrolls();
+                }
               },
-            ),
-        ],
-      ),
-      body: Column(
-        children: [
-          PayrollFilter(
-            selectedPeriod: selectedPeriod,
-            onPeriodChanged: _filterPayroll,
-          ),
-          if (isAdmin) 
-            PayrollSummary(
-              totalAmount: filteredPayroll.fold(
-                0, (sum, item) => sum + (item['netSalary'] as double)
-              ),
-              pendingCount: filteredPayroll.where(
-                (p) => p['status'] == 'Procesando'
-              ).length,
-            ),
-          Expanded(
-            child: PayrollList(
-              payrollData: filteredPayroll,
-              isAdmin: isAdmin,
-              onSelectPayroll: _selectPayroll,
-              onViewDetails: _showPayrollDetails,
-              selectedPayroll: selectedPayroll,
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: isAdmin ? FloatingActionButton(
-        onPressed: () {
-          // Implementar exportación de nómina
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Exportando nómina...'))
-          );
-        },
-        child: const Icon(Icons.file_download),
-      ) : null,
+              label: const Text('Nueva Nómina'),
+              icon: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 }

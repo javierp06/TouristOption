@@ -73,7 +73,17 @@ class CustomDrawer extends StatelessWidget {
                 Navigator.pushReplacementNamed(context, '/employee');
               },
             ),
-            
+            ListTile(
+              leading: const Icon(Icons.calendar_today),
+              title: const Text('Mi Asistencia'),
+              onTap: () {
+                Navigator.pushNamed(
+                  context, 
+                  '/attendance', 
+                  arguments: {'viewType': 'personal'}
+                );
+              },
+            ),
             
           ],
           ListTile(

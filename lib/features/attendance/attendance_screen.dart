@@ -17,23 +17,81 @@ class AttendanceScreen extends StatefulWidget {
 }
 
 class _AttendanceScreenState extends State<AttendanceScreen> {
-  bool isAdmin = true; // En producción: determinar basado en JWT o provider
+  bool isAdmin = true; // Will be updated in initState
   Employee? selectedEmployee;
   List<Employee> employees = [];
   List<Employee> filteredEmployees = [];
   bool isLoading = true;
   String? errorMessage;
   TextEditingController searchController = TextEditingController();
+  String? userId; // To store current user's ID
 
   @override
   void initState() {
     super.initState();
-    _fetchEmployees();
     
-    // Agregar listener para la búsqueda
+    // First fetch user info to determine the role and get userId
+    _fetchUserInfo().then((_) {
+      // Then check if we're viewing in personal mode
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+        if (args != null && args['viewType'] == 'personal') {
+          setState(() {
+            isAdmin = false;
+          });
+        }
+        
+        // Only fetch employees if admin
+        if (isAdmin) {
+          _fetchEmployees();
+        }
+      });
+    });
+    
+    // Add listener for search
     searchController.addListener(() {
       _filterEmployees(searchController.text);
     });
+  }
+  
+  // Add method to fetch current user info
+  Future<void> _fetchUserInfo() async {
+    try {
+      final storage = const FlutterSecureStorage();
+      final token = await storage.read(key: 'token');
+      final userRole = await storage.read(key: 'userRole');
+      
+      // Set isAdmin based on stored role
+      if (userRole != null) {
+        setState(() {
+          isAdmin = userRole == 'admin';
+        });
+      }
+      
+      final response = await http.get(
+        Uri.parse('https://timecontrol-backend.onrender.com/empleados/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final userData = json.decode(response.body);
+        print('User data fetched: ${userData['id']}'); // Debug log
+        setState(() {
+          userId = userData['id'].toString(); // Ensure it's a string
+          // Double-check role from API response if available
+          if (userData['rol'] != null) {
+            isAdmin = userData['rol'] == 'admin';
+          }
+        });
+      } else {
+        print('Failed to get user info: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching user info: $e');
+    }
   }
 
   @override
@@ -125,7 +183,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           ),
         ],
       ),
-      drawer: const CustomDrawer(isAdmin: true),
+      drawer: CustomDrawer(isAdmin: isAdmin),
       body: isAdmin
           ? _buildAdminView(isWideScreen)
           : _buildEmployeeView(isWideScreen),
@@ -208,10 +266,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                           employeeName: '${selectedEmployee!.nombre} ${selectedEmployee!.apellido}',
                         ),
                       ),
-                      const Expanded(
-                        flex: 4,
-                        child: AttendanceCalendar(),
-                      ),
+                      
                     ],
                   )
                 : Column(
@@ -224,10 +279,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                           employeeName: '${selectedEmployee!.nombre} ${selectedEmployee!.apellido}',
                         ),
                       ),
-                      const Expanded(
-                        flex: 6,
-                        child: AttendanceCalendar(),
-                      ),
+                      
                     ],
                   ),
           ),
@@ -295,34 +347,39 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Widget _buildEmployeeView(bool isWideScreen) {
+    // Add loading state for employee view
+    if (userId == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
     return isWideScreen
         ? Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Expanded(
                 flex: 4,
-                child: PersonalAttendanceHistory(showSummary: true),
+                child: PersonalAttendanceHistory(
+                  showSummary: true,
+                  employeeId: userId,
+                  employeeName: 'Mi Asistencia',  // Add employee name
+                ),
               ),
-              Expanded(
-                flex: 4,
-                child: AttendanceCalendar(),
-              ),
+             
             ],
           )
         : Column(
-            children: const [
+            children: [
               Expanded(
                 flex: 4,
-                child: PersonalAttendanceHistory(showSummary: true),
+                child: PersonalAttendanceHistory(
+                  showSummary: true,
+                  employeeId: userId,
+                  employeeName: 'Mi Asistencia',  // Add employee name
+                ),
               ),
-              Expanded(
-                flex: 6,
-                child: AttendanceCalendar(),
-              ),
+              
             ],
           );
-          
-
   }
   
 }
