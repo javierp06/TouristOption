@@ -1,4 +1,4 @@
-enum RequestType { permission, overtime, vacation, disability }
+enum RequestType { permission, vacation, disability }
 
 enum RequestStatus { pending, approved, rejected }
 

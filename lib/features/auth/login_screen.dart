@@ -57,20 +57,24 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200) {
         // Parse the response
         final responseData = json.decode(response.body);
-        print('Login successful: $responseData');
         
-        // Correctly access the role from the usuario object
         final isAdmin = responseData['usuario']['rol'] == 'admin';
-        
-        // Store token and user info for future authenticated requests
         final token = responseData['token'];
         final userId = responseData['usuario']['id_usuario'].toString();
         final userRole = responseData['usuario']['rol'];
+        
+        // Obtener y guardar el nombre del usuario si está disponible
+        final userName = responseData['usuario']['nombre'] != null 
+            ? "${responseData['usuario']['nombre']} ${responseData['usuario']['apellido'] ?? ''}" 
+            : null;
 
         final storage = FlutterSecureStorage();
         await storage.write(key: 'token', value: token);
         await storage.write(key: 'userId', value: userId);
         await storage.write(key: 'userRole', value: userRole);
+        if (userName != null) {
+          await storage.write(key: 'userName', value: userName);
+        }
         
         if (isAdmin) {
           Navigator.pushReplacementNamed(context, '/admin');

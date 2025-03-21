@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/request.dart';
 
+
 class RequestList extends StatelessWidget {
   final List<Request> requests;
+  final Function(Request, RequestStatus)? onUpdateStatus;
 
-  const RequestList({Key? key, required this.requests}) : super(key: key);
+  const RequestList({
+    Key? key, 
+    required this.requests, 
+    this.onUpdateStatus
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +43,12 @@ class RequestList extends StatelessWidget {
                     if (request.attachmentUrl != null)
                       InkWell(
                         onTap: () {
-                          // Open attachment
+                          // Abrir el documento adjunto (por ejemplo mediante url_launcher)
+                          final Uri url = Uri.parse(request.attachmentUrl!);
+                          // Necesitarías importar url_launcher y usar launchUrl(url)
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Abriendo documento: ${request.attachmentUrl}')),
+                          );
                         },
                         child: Row(
                           children: const [
@@ -75,12 +86,7 @@ class RequestList extends StatelessWidget {
           backgroundColor: Colors.blue,
           foregroundColor: Colors.white,
         );
-      case RequestType.overtime:
-        return const CircleAvatar(
-          child: Icon(Icons.access_time),
-          backgroundColor: Colors.orange,
-          foregroundColor: Colors.white,
-        );
+      
       case RequestType.vacation:
         return const CircleAvatar(
           child: Icon(Icons.beach_access),
@@ -123,8 +129,6 @@ class RequestList extends StatelessWidget {
     switch (request.type) {
       case RequestType.permission:
         return 'Permiso';
-      case RequestType.overtime:
-        return 'Horas Extra';
       case RequestType.vacation:
         return 'Vacaciones';
       case RequestType.disability:

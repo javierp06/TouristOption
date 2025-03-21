@@ -178,9 +178,9 @@ class _AdminAttendanceRegisterState extends State<AdminAttendanceRegister> {
 
       // Asignar la hora actual a entrada o salida según corresponda
       if (isEntryRegistration) {
-        attendanceData['entrada'] = currentTime;
+        attendanceData['hora'] = currentTime;
       } else {
-        attendanceData['salida'] = currentTime;
+        attendanceData['hora'] = currentTime;
       }
 
       final response = await http.post(
